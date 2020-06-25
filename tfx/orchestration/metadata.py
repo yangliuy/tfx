@@ -33,7 +33,7 @@ import absl
 import six
 import tensorflow as tf
 
-from ml_metadata.metadata_store import metadata_store
+# Standard Imports.third_party.ml_metadata as metadata_store
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.proto import metadata_store_service_pb2
 from tensorflow.python.lib.io import file_io  # pylint: disable=g-direct-tensorflow-import
