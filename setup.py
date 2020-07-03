@@ -22,6 +22,9 @@ import os
 import subprocess
 import sys
 
+# pylint: disable=g-import-not-at-top
+print(*sys.path, sep='\n')
+
 from setuptools import find_packages
 from setuptools import setup
 
