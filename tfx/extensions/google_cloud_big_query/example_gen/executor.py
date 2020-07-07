@@ -21,10 +21,12 @@ from __future__ import print_function
 from typing import Any, Dict, Optional, Text
 
 import apache_beam as beam
+from apache_beam.io.gcp.bigquery import ReadFromBigQuery
 import tensorflow as tf
 
-from google.cloud import bigquery
 from tfx.components.example_gen import base_example_gen_executor
+from tfx.utils import telemetry_utils
+from google.cloud import bigquery
 
 
 class _BigQueryConverter(object):
@@ -95,15 +97,13 @@ def _ReadFromBigQueryImpl(  # pylint: disable=invalid-name
     return (pipeline
             | 'ReadFromBigQuerySource' >> beam.io.Read(
                 beam.io.BigQuerySource(query=query, use_standard_sql=True)))
-  # TODO(b/155441037): Change this to top level import after Beam version is
-  # upgraded to 2.22.
-  try:
-    from apache_beam.io.gcp.bigquery import ReadFromBigQuery  # pylint: disable=import-outside-toplevel,g-import-not-at-top
-  except ImportError:
-    from apache_beam.io.gcp.bigquery import _ReadFromBigQuery as ReadFromBigQuery  # pylint: disable=import-outside-toplevel,g-import-not-at-top
+
   return (pipeline
           | 'ReadFromBigQuery' >> ReadFromBigQuery(
-              query=query, use_standard_sql=True, project=project))
+              query=query,
+              use_standard_sql=True,
+              project=project,
+              bigquery_job_labels=telemetry_utils.get_labels_dict()))
 
 
 @beam.ptransform_fn
