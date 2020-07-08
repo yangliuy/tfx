@@ -83,6 +83,8 @@ _TEMP_DIR_IN_TRANSFORM_OUTPUT = '.temp_path'
 
 _TRANSFORM_COMPONENT_DESCRIPTOR = 'Transform'
 
+_MAX_ESTIMATED_STAGES_COUNT = 10000
+
 
 # TODO(b/122478841): Move it to a common place that is shared across components.
 class _Status(object):
@@ -702,11 +704,24 @@ class Executor(base_executor.BaseExecutor):
       dataset_keys_list = [
           dataset.dataset_key for dataset in self._analyze_data_list
       ]
+      # TODO(b/37788560): Remove this restriction when a greater number of
+      # stages can be handled efficiently.
+      cache_entry_keys = (
+          tft_beam.analysis_graph_builder.get_analysis_cache_entry_keys(
+              self._preprocessing_fn, self._feature_spec_or_typespec,
+              dataset_keys_list))
+      # We estimate the number of stages in the pipeline to be roughly:
+      # analyzers * analysis_paths * 10.
+      if (len(cache_entry_keys) * len(dataset_keys_list) >
+          _MAX_ESTIMATED_STAGES_COUNT / 10):
+        absl.logging.warning(
+            'Disabling cache because otherwise the number of stages would be '
+            'too high ({} analyzers, {} analysis paths)'.format(
+                len(cache_entry_keys), len(dataset_keys_list)))
+        # Returning None as the input cache here disables both input and output
+        # cache.
+        return ({d.dataset_key: d for d in self._analyze_data_list}, None)
       if self._input_cache_dir is not None:
-        cache_entry_keys = (
-            tft_beam.analysis_graph_builder.get_analysis_cache_entry_keys(
-                self._preprocessing_fn, self._feature_spec_or_typespec,
-                dataset_keys_list))
         input_cache = (
             pipeline
             | 'ReadCache' >> analyzer_cache.ReadAnalysisCacheFromFS(
